@@ -29,6 +29,21 @@ CREATE USER Admin
 GRANT DBA TO Admin;
 GRANT CONNECT TO Admin;
 
+--5. Punto
+--crear 2 perfiles
+--a.Perfil 1: manager
+CREATE PROFILE perfil_clerk LIMIT 
+  SESSIONS_PER_USER          1
+  PASSWORD_LIFE_TIME         40
+  IDLE_TIME                  10
+  FAILED_LOGIN_ATTEMPTS      4;
+
+--c.Perfil 3: development
+CREATE PROFILE perfil_development LIMIT 
+  SESSIONS_PER_USER          2
+  PASSWORD_LIFE_TIME         100
+  IDLE_TIME                  30;
+
 
 
 
