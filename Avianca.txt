@@ -44,6 +44,40 @@ CREATE PROFILE perfil_development LIMIT
   PASSWORD_LIFE_TIME         100
   IDLE_TIME                  30;
 
+--6. Punto
+--crear 4 usuarios
+CREATE USER User1
+IDENTIFIED BY User1123
+DEFAULT TABLESPACE avianca
+PROFILE perfil_clerk;
+GRANT CONNECT TO User1;
+
+
+CREATE USER User2
+IDENTIFIED BY User2123
+DEFAULT TABLESPACE avianca
+PROFILE perfil_clerk;
+GRANT CONNECT TO User2;
+
+
+CREATE USER User3
+IDENTIFIED BY User3123
+DEFAULT TABLESPACE avianca
+PROFILE perfil_development;
+GRANT CONNECT TO User3;
+
+
+CREATE USER User4
+IDENTIFIED BY User4123
+DEFAULT TABLESPACE avianca
+PROFILE perfil_development;
+GRANT CONNECT TO User4;
+
+--7. Punto
+--bloquear 1 usuario con el perfil clerk
+ALTER USER User1 ACCOUNT LOCK;
+
+
 
 
 
