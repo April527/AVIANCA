@@ -1,0 +1,200 @@
+--head
+
+create or replace PACKAGE PKG_PUNTO_1 AS 
+
+PROCEDURE SP_INICIAR;
+
+END PKG_PUNTO_1;
+
+
+-- body
+
+create or replace PACKAGE BODY PKG_PUNTO_1 AS
+
+in_id_avion Number:=0;
+
+PROCEDURE SP_ASIGNAR_TRIPULACION (ar_id_vuelo NUmber) As
+
+ln_asientos_vip NUmber:=0;
+ln_asientos_economicos NUmber:=0;
+
+
+CURSOR lcur_tripulacion Is Select Em.Nombres, Em.Apellidos, Em.TIPO_EMPLEADO,EM.ESTADO, Em.HORAS_DESCANSO_ULTIMO_VUELO, Pa.CIUDAD
+                            From cronogramas cr
+                            Inner Join Pilotos Pip On Pip.ID = Cr.Piloto_Id
+                            Inner Join Empleados Em On Em.Id = Pip.EMPLEADOS_ID
+                            Inner Join Paises Pa On Pa.Id = Em.Paises_Id
+                            Where cr.VUELO_ID = ar_id_vuelo And Em.Estado = 'ACTIVO' 
+                            AND Em.HORAS_DESCANSO_ULTIMO_VUELO >= 2
+
+                            UNION
+                            --COPILOTO
+                            Select Em1.Nombres, Em1.Apellidos, Em1.TIPO_EMPLEADO,EM1.ESTADO, Em1.HORAS_DESCANSO_ULTIMO_VUELO, Pa.CIUDAD
+                            From cronogramas cr
+                            Inner Join Pilotos Pic On Pic.ID = cr.COPILOTO_ID
+                            Inner Join Empleados Em1 On Em1.Id = Pic.EMPLEADOS_ID
+                            Inner Join Paises Pa On Pa.Id = Em1.Paises_Id
+                            Where cr.VUELO_ID = ar_id_vuelo AND Em1.Estado = 'ACTIVO' AND 
+                            Em1.HORAS_DESCANSO_ULTIMO_VUELO >= 2;
+
+BEGIN
+        IF SQL%FOUND THEN 
+            Select NUM_ASIENTOS_PRIMERA_CLASE, num_asientos_economico Into ln_asientos_vip, ln_asientos_economicos
+                        From Aviones
+                            Where Id = in_id_avion;
+            Case 
+                 When ln_asientos_vip + ln_asientos_economicos > 19 Then
+                    DBMS_OUTPUT.PUT_LINE('ES OBLIGATORIO QUE CUENTEN CON UN TRIPULANTE DE CABIA DE PASAJEROS');
+                 When ln_asientos_vip + ln_asientos_economicos > 50 Then
+                    DBMS_OUTPUT.PUT_LINE('ES BLIGATORIO 2 AUXILIARES DE VUELO ABORDO');
+                 When ln_asientos_vip + ln_asientos_economicos > 180 Then
+                    DBMS_OUTPUT.PUT_LINE('ES BLIGATORIO 4 AUXILIARES DE VUELO COMO MINIMO');
+                 When ln_asientos_vip + ln_asientos_economicos > 853 Then
+                    DBMS_OUTPUT.PUT_LINE('ES BLIGATORIO 18 TRIPULANTES MINIMO');
+            End Case;
+        END IF;
+    
+            
+    
+END SP_ASIGNAR_TRIPULACION;
+
+PROCEDURE SP_ASIGNAR_AVION (an_id_vuelo NUmber,as_id_avion Number) AS
+BEGIN
+
+    UPDATE CRONOGRAMAS SET AVION_ID = as_id_avion
+    WHERE VUELO_ID = an_id_vuelo;
+    
+            
+END SP_ASIGNAR_AVION; 
+
+PROCEDURE SP_INICIAR AS
+
+ld_fecha_ral_salida VARCHAR2(255);
+ln_id_vuelo Number:=0;
+ld_fecha_ral_salida_2_horas VARCHAR2(255);
+lv_origen varchar2(255 byte);
+lv_aeropuerto_origen varchar2(255 byte);
+lv_aeropuerto_destino varchar2(255 byte);
+lv_ciudad varchar2(255 byte);
+lb_primer_r boolean:=false;
+
+
+Cursor lcur_b Is Select * From vw_punto_1_b;
+
+BEGIN
+--PUNTO 1
+    Select ID_VUELO,FECHA_REAL_SALIDA,
+           FECHA_REAL_SALIDA_2_HORAS,CIUDAD, ORIGEN, AEROPUERTO_ORIGEN, AEROPUERTO_DESTINO
+    Into ln_id_vuelo,ld_fecha_ral_salida,ld_fecha_ral_salida_2_horas,lv_ciudad,lv_origen,lv_aeropuerto_origen,lv_aeropuerto_destino 
+    From vw_punto_1_a;
+                
+        FOR ln_index in lcur_b LOOP
+            IF  to_date(ln_index.fecha_llegada_estimada,'dd/mm/yy hh24:mi') < to_date(ld_fecha_ral_salida_2_horas,'dd/mm/yy hh24:mi') THEN
+                DBMS_OUTPUT.PUT_LINE('**********************************************************************************');
+                DBMS_OUTPUT.PUT_LINE('**************AVIONES DISPONIBLES PARA EL VUELO: '||ln_index.num_vuelo||'********************');
+                DBMS_OUTPUT.PUT_LINE('**********************************************************************************');
+                DBMS_OUTPUT.PUT_LINE('ID_VUELO: '||ln_index.id_vuelo);
+                DBMS_OUTPUT.PUT_LINE('FECHA SALIDA ESTIMADA: '||ln_index.fecha_llegada_estimada);
+                DBMS_OUTPUT.PUT_LINE('VUELO: '||ln_index.num_vuelo);
+                DBMS_OUTPUT.PUT_LINE('ID_AVION: '||ln_index.Id_Avion);
+                DBMS_OUTPUT.PUT_LINE('AVION: '||ln_index.avion);
+                DBMS_OUTPUT.PUT_LINE('ID ORIGEN: '||ln_index.id_origen);
+                DBMS_OUTPUT.PUT_LINE('AEROPUERTO ORIGEN: '||ln_index.aeropuerto_origen);
+                DBMS_OUTPUT.PUT_LINE('ID DESTINO: '||ln_index.id_destino);
+                DBMS_OUTPUT.PUT_LINE('AEROPUERTO DESTINO: '||ln_index.aeropuerto_destino);
+                 
+                  IF lb_primer_r = False Then 
+                        in_id_avion:=ln_index.Id_Avion;
+                    --SP_ASIGNAR_AVION(ln_id_vuelo,ln_index.Id_Avion);
+                        lb_primer_r :=True;
+                    
+                  End IF;
+                      
+
+            END IF;
+        END LOOP;
+                DBMS_OUTPUT.PUT_LINE('**************************************************************************************'); 
+--PUNTO 2
+
+END SP_INICIAR;
+
+END PKG_PUNTO_1;
+
+------------------------------------------PUNTO 3 -------------------------------------------------
+
+CREATE OR REPLACE PROCEDURE CHECK_INSP1 (ID_VUELO IN NUMBER, ID_PASAJERO IN NUMBER, TIPO_SILLA IN VARCHAR2)
+AS
+
+    VAR1 NUMBER := ID_VUELO;
+    VAR2 NUMBER := 1;
+    VAR3 VARCHAR2(255) := '';
+    NP NUMBER := 1;
+    NE NUMBER := 1;
+    
+BEGIN 
+
+        SELECT Aviones.Num_Asientos_Primera_Clase, AVIONES.NUM_ASIENTOS_ECONOMICO 
+        INTO NP, NE
+        FROM CRONOGRAMAS
+        INNER JOIN AVIONES
+        ON CRONOGRAMAS.AVION_ID = AVIONES.ID
+        WHERE CRONOGRAMAS.VUELO_ID = ID_VUELO;
+        
+        SELECT CRONOGRAMAS.CANTIDAD_PASAJEROS_ECONOMICO, CRONOGRAMAS.CANTIDAD_PASAJEROS_PRIMERA, VUELOS.ESTADO INTO VAR1, VAR2, VAR3
+        FROM CHECK_INS 
+        INNER JOIN VUELOS 
+        ON CHECK_INS.VUELO_ID = VUELOS.ID
+        INNER JOIN CRONOGRAMAS
+        ON VUELOS.ID= CRONOGRAMAS.VUELO_ID
+        WHERE Check_Ins.Viajero_Id = ID_PASAJERO
+        AND Check_Ins.Vuelo_Id = ID_VUELO;
+        
+--       DBMS_OUTPUT.PUT_LINE(VAR2);
+  --     DBMS_OUTPUT.PUT_LINE(NP);
+       
+       --DBMS_OUTPUT.PUT_LINE('la cantidad de asientos de clase economica del avion  es ' ||  NE);
+       IF VAR3= 'CONFIRMADO' THEN
+       
+            IF TIPO_SILLA = 'ECONOMICA' THEN 
+           
+                IF NE > VAR1   THEN
+                  
+                        UPDATE CRONOGRAMAS 
+                        SET Cantidad_Pasajeros_Economico = VAR1 + 1 
+                        WHERE CRONOGRAMAS.VUELO_ID = ID_VUELO;
+                 ELSE 
+            
+                    --EXCEPTION
+                    
+                    NULL;
+                
+    
+                      --  SELECT CRONOGRAMAS.CANTIDAD_PASAJEROS_ECONOMICO INTO VAR2 FROM CRONOGRAMAS;
+                        
+                       -- DBMS_OUTPUT.PUT_LINE('la nueva cantidad de pasajeros en clase ' || Tipo_Silla || ' es ' ||  VAR2);
+                 END IF;
+            END IF;    
+           
+           IF TIPO_SILLA = 'PRIMERA' THEN 
+           
+                IF  NP > VAR2   THEN
+                            
+                    UPDATE CRONOGRAMAS 
+                    SET Cantidad_Pasajeros_Primera = VAR2 + 1
+                    WHERE CRONOGRAMAS.VUELO_ID = ID_VUELO;
+                ELSE
+                    --EXCEPTION
+                    
+                     NULL;
+                   
+                END IF;
+                
+                 
+            END IF;
+        ELSE 
+        
+            DBMS_OUTPUT.PUT_LINE('No se puede hacer un check in cuando el vuelo està en estado ' || VAR3);
+        
+        END IF;
+         --DBMS_OUTPUT.PUT_LINE('la cantidad de pasajeros ' || Tipo_Silla || ' es ' ||  VAR1);
+END;
