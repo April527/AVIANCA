@@ -1,0 +1,38 @@
+
+  CREATE OR REPLACE FORCE EDITIONABLE VIEW "AVIANCA"."VW_PUNTO_4" ("NOMBRES", "APELLIDOS", "PILOTOS", "AUXILIARES_DE_SERVICIO", "COPILOTO", "ESTADO", "HORAS_DESCANSO_ULTIMO_VUELO", "CIUDAD") AS 
+  Select Em.Nombres, Em.Apellidos,Case Em.TIPO_EMPLEADO When 'Pilotos' Then
+                            Em.TIPO_EMPLEADO Else '' End As Pilotos, Case Em.TIPO_EMPLEADO When 'Auxiliares de Servicio' Then
+                            Em.TIPO_EMPLEADO Else '' End As Auxiliares_de_Servicio, Case Em.TIPO_EMPLEADO When 'Copiloto' Then
+                            Em.TIPO_EMPLEADO Else '' End As Copiloto,EM.ESTADO, Em.HORAS_DESCANSO_ULTIMO_VUELO, Pa.CIUDAD
+                            From cronogramas cr
+                            Inner Join Pilotos Pip On Pip.ID = Cr.Piloto_Id
+                            Inner Join Empleados Em On Em.Id = Pip.EMPLEADOS_ID
+                            Inner Join Paises Pa On Pa.Id = Em.Paises_Id
+                            Where cr.VUELO_ID = 11 And Em.Estado = 'ACTIVO' 
+                            AND Em.HORAS_DESCANSO_ULTIMO_VUELO >= 2
+                            UNION
+                            --COPILOTO
+                            Select Em1.Nombres, Em1.Apellidos, 
+                            Case Em1.TIPO_EMPLEADO When 'Pilotos' Then Em1.TIPO_EMPLEADO Else '' End As Pilotos,  
+                            Case Em1.TIPO_EMPLEADO When 'Auxiliares de Servicio' Then Em1.TIPO_EMPLEADO
+                            Else '' End As Auxiliares_de_Servicio, Case Em1.TIPO_EMPLEADO When 'Copiloto' Then 
+                            Em1.TIPO_EMPLEADO Else '' End As Copiloto
+                            ,EM1.ESTADO, Em1.HORAS_DESCANSO_ULTIMO_VUELO, Pa.CIUDAD 
+                            From cronogramas cr
+                            Inner Join Pilotos Pic On Pic.ID = cr.COPILOTO_ID
+                            Inner Join Empleados Em1 On Em1.Id = Pic.EMPLEADOS_ID
+                            Inner Join Paises Pa On Pa.Id = Em1.Paises_Id
+                            Where cr.VUELO_ID = 11 AND Em1.Estado = 'ACTIVO' AND
+                            Em1.HORAS_DESCANSO_ULTIMO_VUELO >= 2;
+
+punto 5 
+
+SELECT Rutas.Aeropuerto_Origen_Id, RUTAS.AEROPUERTO_DESTINO_ID, VUELOS.ID, 
+CRONOGRAMAS.FECHA_REAL_SALIDA, Cronogramas.Fecha_Real_Salida, VUELOS.NUM_VUELO
+FROM CRONOGRAMAS
+INNER JOIN VUELOS
+ON Cronogramas.Vuelo_Id = VUELOS.ID
+INNER JOIN RUTAS
+ON VUELOS.RUTA_ID = RUTAS.ID
+WHERE RUTAS.ID = 26 AND (Cronogramas.Fecha_Real_Salida > SYSDATE) 
+AND TO_NUMBER(SUBSTR(Cronogramas.Fecha_Real_Salida,1,2))< TO_NUMBER(SUBSTR(SYSDATE,1,2)) ;
